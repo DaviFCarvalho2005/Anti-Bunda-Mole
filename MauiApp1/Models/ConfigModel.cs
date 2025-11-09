@@ -1,10 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace Anti_Bunda_Mole.Models;
+﻿namespace Anti_Bunda_Mole.Models;
 
 public class Periodo
 {
@@ -15,12 +9,12 @@ public class Periodo
 public class DiaConfig
 {
     public bool Ativo { get; set; }
-    public List<Periodo> Periodos { get; set; }
+    public List<Periodo> Periodos { get; set; } = new();
 }
 
 public class Configuracoes
 {
     public int IntervaloAviso { get; set; } // em minutos
-    public Dictionary<string, DiaConfig> Dias { get; set; }
+    public Dictionary<int, DiaConfig> Dias { get; set; } = new(); // chave agora é int
     public string PosicaoTarefas { get; set; } = "";
 }

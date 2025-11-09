@@ -68,24 +68,7 @@
                     Padding="10"/>
             </Border>
             <!-- Botão flutuante extra para testar Overlay -->
-            <Border
-                Stroke="#00FF00"
-                StrokeThickness="5"
-                BackgroundColor="#AA000000"
-                WidthRequest="70"
-                HeightRequest="70"
-                HorizontalOptions="Start"
-                VerticalOptions="End"
-                Margin="20"
-                StrokeShape="RoundRectangle 35">
-                <ImageButton
-                        x:Name="btn_testOverlay"
-                        Source="overlay.png" 
-                        Clicked="OnTestOverlayClicked"
-                        BackgroundColor="Transparent"
-                        Padding="10"
-                    />
-            </Border>
+            
         </Grid>
     </Grid>
 </ContentPage>

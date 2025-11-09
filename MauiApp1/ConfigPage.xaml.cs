@@ -1,5 +1,10 @@
 using Anti_Bunda_Mole.Models;
 using Anti_Bunda_Mole.Methods;
+using Microsoft.Maui.Controls;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
 
 namespace Anti_Bunda_Mole;
 
@@ -8,8 +13,8 @@ public partial class ConfigPage : ContentPage
     private Animations _an;
     private AuxiliarFuncs _aux_f;
 
-    // Guarda os TimePickers de cada período
-    private Dictionary<string, List<(TimePicker inicio, TimePicker fim)>> periodosPorDia;
+    // Guarda os TimePickers de cada período por número do dia
+    private Dictionary<int, List<(TimePicker inicio, TimePicker fim)>> periodosPorDia;
 
     // RadioButtons personalizados
     private List<Frame> posicoesFrames;
@@ -23,7 +28,7 @@ public partial class ConfigPage : ContentPage
         _an.AddHoverEffect(btn_back);
         _an.AddHoverEffect(btn_save);
 
-        periodosPorDia = new Dictionary<string, List<(TimePicker, TimePicker)>>();
+        periodosPorDia = new Dictionary<int, List<(TimePicker, TimePicker)>>();
 
         CriarFormularioDinamico();
         InicializarRadioButtons();
@@ -34,10 +39,16 @@ public partial class ConfigPage : ContentPage
     #region Formulário Dinâmico
     private void CriarFormularioDinamico()
     {
-        var diasSemana = new string[] { "Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb" };
+        // Dia da semana como número + nome para exibição
+        var diasSemana = new (int DiaNumero, string Nome)[]
+        {
+            (0, "Dom"), (1, "Seg"), (2, "Ter"),
+            (3, "Qua"), (4, "Qui"), (5, "Sex"), (6, "Sáb")
+        };
+
         var container = new VerticalStackLayout { Spacing = 15, Padding = 10 };
 
-        foreach (var dia in diasSemana)
+        foreach (var (diaNumero, nome) in diasSemana)
         {
             var diaFrame = new Frame
             {
@@ -49,13 +60,12 @@ public partial class ConfigPage : ContentPage
             var diaStack = new VerticalStackLayout { Spacing = 5 };
 
             // Label do dia
-            var diaLabel = new Label
+            diaStack.Children.Add(new Label
             {
-                Text = dia,
+                Text = nome,
                 TextColor = Colors.White,
                 FontAttributes = FontAttributes.Bold
-            };
-            diaStack.Children.Add(diaLabel);
+            });
 
             // Checkbox para ativar o dia
             var chkDia = new CheckBox { Color = Colors.Gold };
@@ -66,7 +76,6 @@ public partial class ConfigPage : ContentPage
 
             // Períodos
             var periodos = new List<(TimePicker, TimePicker)>();
-
             for (int i = 0; i < 2; i++)
             {
                 var periodoStack = new HorizontalStackLayout { Spacing = 10 };
@@ -83,7 +92,7 @@ public partial class ConfigPage : ContentPage
                 diaStack.Children.Add(periodoStack);
             }
 
-            periodosPorDia[dia] = periodos;
+            periodosPorDia[diaNumero] = periodos;
             diaFrame.Content = diaStack;
             container.Children.Add(diaFrame);
         }
@@ -105,10 +114,8 @@ public partial class ConfigPage : ContentPage
 
         foreach (var frame in posicoesFrames)
         {
-            // Hover
             _an.AddHoverEffect(frame);
 
-            // Clique
             var tapGesture = new TapGestureRecognizer();
             tapGesture.Tapped += (s, e) => SelecionarPosicao(frame);
             frame.GestureRecognizers.Add(tapGesture);
@@ -117,7 +124,6 @@ public partial class ConfigPage : ContentPage
 
     private void SelecionarPosicao(Frame frame)
     {
-        // Limpa seleção anterior
         if (frameSelecionado != null)
         {
             frameSelecionado.BackgroundColor = Colors.Transparent;
@@ -125,7 +131,6 @@ public partial class ConfigPage : ContentPage
             frameSelecionado.HasShadow = false;
         }
 
-        // Seleciona novo
         frameSelecionado = frame;
         frameSelecionado.BackgroundColor = Color.FromArgb("#33FFE000");
         frameSelecionado.BorderColor = Colors.Gold;
@@ -139,13 +144,12 @@ public partial class ConfigPage : ContentPage
     #endregion
 
     #region Helpers
-    private CheckBox GetCheckBoxDoDia(string dia)
+    private CheckBox GetCheckBoxDoDia(int diaNumero)
     {
         var containerStack = stack_days.Content as VerticalStackLayout;
-        var diaFrame = containerStack.Children[Array.IndexOf(periodosPorDia.Keys.ToArray(), dia)] as Frame;
+        var diaFrame = containerStack.Children[diaNumero] as Frame;
         var diaStack = diaFrame.Content as VerticalStackLayout;
-        var chkDia = ((HorizontalStackLayout)diaStack.Children[1]).Children[0] as CheckBox;
-        return chkDia;
+        return ((HorizontalStackLayout)diaStack.Children[1]).Children[0] as CheckBox;
     }
     #endregion
 
@@ -161,22 +165,21 @@ public partial class ConfigPage : ContentPage
         await _an.AnimateButton((ImageButton)sender);
 
         var config = ConfigManager.Instance.Config;
-
         config.IntervaloAviso = int.TryParse(entry_intervalo.Text, out int intervalo) ? intervalo : 0;
         config.PosicaoTarefas = ObterPosicaoSelecionada();
 
-        foreach (var dia in periodosPorDia.Keys)
+        foreach (var diaNumero in periodosPorDia.Keys)
         {
-            var periodos = periodosPorDia[dia];
+            var periodos = periodosPorDia[diaNumero];
             var periodoList = periodos.Select(p => new Periodo
             {
                 Inicio = p.inicio.Time.ToString(@"hh\:mm"),
                 Fim = p.fim.Time.ToString(@"hh\:mm")
             }).ToList();
 
-            var chkDia = GetCheckBoxDoDia(dia);
+            var chkDia = GetCheckBoxDoDia(diaNumero);
 
-            config.Dias[dia] = new DiaConfig
+            config.Dias[diaNumero] = new DiaConfig
             {
                 Ativo = chkDia.IsChecked,
                 Periodos = periodoList
@@ -203,14 +206,14 @@ public partial class ConfigPage : ContentPage
             if (frame != null) SelecionarPosicao(frame);
         }
 
-        foreach (var dia in periodosPorDia.Keys)
+        foreach (var diaNumero in periodosPorDia.Keys)
         {
-            if (!config.Dias.ContainsKey(dia)) continue;
+            if (!config.Dias.ContainsKey(diaNumero)) continue;
 
-            var diaConfig = config.Dias[dia];
-            GetCheckBoxDoDia(dia).IsChecked = diaConfig.Ativo;
+            var diaConfig = config.Dias[diaNumero];
+            GetCheckBoxDoDia(diaNumero).IsChecked = diaConfig.Ativo;
 
-            var periodos = periodosPorDia[dia];
+            var periodos = periodosPorDia[diaNumero];
             for (int i = 0; i < periodos.Count && i < diaConfig.Periodos.Count; i++)
             {
                 periodos[i].inicio.Time = TimeSpan.Parse(diaConfig.Periodos[i].Inicio);

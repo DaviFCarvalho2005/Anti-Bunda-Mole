@@ -225,9 +225,6 @@ namespace Anti_Bunda_Mole
             }
         }
 
-        private async void OnTestOverlayClicked(object sender, EventArgs e)
-        {
-            await Navigation.PushAsync(new OverlayTestPage());
-        }
+        
     }
 }

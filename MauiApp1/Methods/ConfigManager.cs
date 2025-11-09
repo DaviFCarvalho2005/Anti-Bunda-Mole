@@ -1,5 +1,6 @@
 ﻿using System.Text.Json;
 using Anti_Bunda_Mole.Models;
+
 namespace Anti_Bunda_Mole.Methods;
 
 public class ConfigManager
@@ -13,9 +14,10 @@ public class ConfigManager
     {
         var folder = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
         FilePath = Path.Combine(folder, "AntiBundaMole", "config.json");
+
         Config = new Configuracoes
         {
-            Dias = new Dictionary<string, DiaConfig>(),
+            Dias = new Dictionary<int, DiaConfig>(),
             IntervaloAviso = 0,
             PosicaoTarefas = ""
         };
@@ -30,8 +32,33 @@ public class ConfigManager
         try
         {
             var json = await File.ReadAllTextAsync(FilePath);
-            var config = JsonSerializer.Deserialize<Configuracoes>(json);
-            if (config != null) Config = config;
+
+            // Compatibilidade: se JSON antigo tiver string, tenta converter para int
+            var tempConfig = JsonSerializer.Deserialize<JsonElement>(json);
+
+            if (tempConfig.TryGetProperty("Dias", out var diasElement))
+            {
+                var diasInt = new Dictionary<int, DiaConfig>();
+                foreach (var prop in diasElement.EnumerateObject())
+                {
+                    if (int.TryParse(prop.Name, out int diaNumero))
+                    {
+                        var diaConfig = JsonSerializer.Deserialize<DiaConfig>(prop.Value.GetRawText());
+                        if (diaConfig != null)
+                            diasInt[diaNumero] = diaConfig;
+                    }
+                }
+
+                var intervalo = tempConfig.TryGetProperty("IntervaloAviso", out var intervalEl) ? intervalEl.GetInt32() : 0;
+                var posicao = tempConfig.TryGetProperty("PosicaoTarefas", out var posEl) ? posEl.GetString() ?? "" : "";
+
+                Config = new Configuracoes
+                {
+                    Dias = diasInt,
+                    IntervaloAviso = intervalo,
+                    PosicaoTarefas = posicao
+                };
+            }
         }
         catch
         {
@@ -46,6 +73,7 @@ public class ConfigManager
         await File.WriteAllTextAsync(FilePath, json);
         ConfigChanged?.Invoke();
     }
+
     public void LoadIfNeeded()
     {
         if (!File.Exists(FilePath)) return;
@@ -61,11 +89,11 @@ public class ConfigManager
             // Pode logar o erro aqui
         }
     }
+
     public event Action? ConfigChanged;
 
     public void NotifyChanged()
     {
         ConfigChanged?.Invoke();
     }
-
 }
