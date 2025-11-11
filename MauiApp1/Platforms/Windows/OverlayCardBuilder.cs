@@ -1,44 +1,16 @@
-using Anti_Bunda_Mole.Methods;
-using SQLite;
+﻿#if WINDOWS
 using Microsoft.Maui.Controls;
+using SQLite;
+using System;
 using System.IO;
 using System.Linq;
+using Anti_Bunda_Mole.Methods;
 
-#if WINDOWS
-using Anti_Bunda_Mole.Platforms.Windows;
-#endif
-
-namespace Anti_Bunda_Mole
+namespace Anti_Bunda_Mole.Platforms.Windows
 {
-    public partial class OverlayTestPage : ContentPage
+    public class OverlayCardBuilder
     {
-        public OverlayTestPage()
-        {
-            InitializeComponent();
-        }
-
-        private void OnShowOverlayClicked(object sender, EventArgs e)
-        {
-#if WINDOWS
-            // Usa o TaskOverlayController para exibir o overlay conforme o JSON
-            TaskOverlayController.ShowTasks(BuildOverlayCards);
-#endif
-        }
-
-        private void OnCloseOverlayClicked(object sender, EventArgs e)
-        {
-#if WINDOWS
-            TaskOverlayController.Close();
-#endif
-        }
-
-        private async void OnBackClicked(object sender, EventArgs e)
-        {
-            await Navigation.PopAsync();
-        }
-
-#if WINDOWS
-        private ScrollView BuildOverlayCards()
+        public ScrollView BuildCards()
         {
             var panel = new StackLayout
             {
@@ -49,7 +21,6 @@ namespace Anti_Bunda_Mole
 
             try
             {
-                // Caminho do banco local
                 var dbPath = Path.Combine(
                     Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments),
                     "AntiBundaMole",
@@ -59,10 +30,9 @@ namespace Anti_Bunda_Mole
                 var db = new SQLiteConnection(dbPath);
                 db.CreateTable<TaskItem>();
 
-                // Seleciona tarefas pendentes
                 var pendingTasks = db.Table<TaskItem>().Where(t => !t.IsCompleted).ToList();
 
-                if (pendingTasks.Count == 0)
+                if (!pendingTasks.Any())
                 {
                     panel.Children.Add(new Label
                     {
@@ -118,7 +88,7 @@ namespace Anti_Bunda_Mole
                 });
             }
 
-            // Bot�o final
+            // Botão final
             var openMainButton = new Button
             {
                 Text = "Abrir Painel Principal",
@@ -130,29 +100,17 @@ namespace Anti_Bunda_Mole
                 Margin = new Thickness(0, 20, 0, 0)
             };
 
-            openMainButton.Clicked += async (s, e) =>
+            openMainButton.Clicked += (s, e) =>
             {
-                try
-                {
-                    if (Application.Current.MainPage is not MainPage)
-                        Application.Current.MainPage = new MainPage();
-
-                    await Application.Current.MainPage.Navigation.PopToRootAsync(animated: false);
-                }
-                catch
-                {
-                    Application.Current.MainPage = new MainPage();
-                }
+                var exePath = System.Diagnostics.Process.GetCurrentProcess().MainModule.FileName;
+                System.Diagnostics.Process.Start(exePath);
+                System.Diagnostics.Process.GetCurrentProcess().Kill();
             };
 
             panel.Children.Add(openMainButton);
 
-            // Envolvendo em ScrollView para permitir rolagem
-            return new ScrollView
-            {
-                Content = panel
-            };
+            return new ScrollView { Content = panel };
         }
-#endif
     }
 }
+#endif
