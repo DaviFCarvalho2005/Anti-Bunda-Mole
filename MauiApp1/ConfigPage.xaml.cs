@@ -153,8 +153,8 @@ public partial class ConfigPage : ContentPage
             var periodos = periodosPorDia[diaNumero];
             var periodoList = periodos.Select(p => new Periodo
             {
-                Inicio = p.inicio.Time.ToString(@"hh\:mm"),
-                Fim = p.fim.Time.ToString(@"hh\:mm")
+                Inicio = string.Format("{0:hh\\:mm}", p.inicio.Time),
+                Fim = string.Format("{0:hh\\:mm}", p.fim.Time),
             }).ToList();
 
             var chkDia = GetCheckBoxDoDia(diaNumero);

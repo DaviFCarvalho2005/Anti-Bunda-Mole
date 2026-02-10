@@ -24,7 +24,6 @@ namespace Anti_Bunda_Mole.Platforms.Windows
         private static bool _subscribed = false;
         private static Func<ScrollView>? _lastBuilder;
 
-        private static FloatingButtonWindow? _floatingButton;
         private static OverlayScheduleManager? _scheduleManager;
 
         public static void ShowTasks(Func<ScrollView> buildCards)
@@ -60,7 +59,12 @@ namespace Anti_Bunda_Mole.Platforms.Windows
                 HorizontalAlignment = HorizontalAlignment.Stretch
             };
 
-            var children = mauiPanel.Children.ToList();
+            var children = Enumerable.Empty<IView>();
+
+            if (mauiPanel.Content is IVisualTreeElement visual)
+            {
+                children = visual.GetVisualChildren().OfType<IView>();
+            }
             if (bottomToTop)
                 children.Reverse();
 
@@ -124,69 +128,7 @@ namespace Anti_Bunda_Mole.Platforms.Windows
         // FLOATING BUTTON CONTROL
         // ============================
 
-        public static void ShowFloatingButton()
-        {
-            if (_floatingButton == null)
-                _floatingButton = new FloatingButtonWindow();
 
-            var mauiButton = new ImageButton
-            {
-                Source = "home.png",
-                BackgroundColor = Colors.Transparent,
-                WidthRequest = 75,
-                HeightRequest = 75
-            };
-
-            mauiButton.Clicked += (s, e) =>
-            {
-                try
-                {
-                    var exePath = System.Diagnostics.Process.GetCurrentProcess().MainModule.FileName;
-                    System.Diagnostics.Process.Start(exePath);
-                    System.Diagnostics.Process.GetCurrentProcess().Kill();
-                }
-                catch (Exception ex)
-                {
-                    System.Diagnostics.Debug.WriteLine($"Error restarting: {ex}");
-                }
-            };
-
-            var mauiContext = MauiWinUIApplication.Current.Application.Windows
-                .FirstOrDefault()?.Handler?.MauiContext;
-
-            if (mauiContext == null) return;
-
-            var nativeButton = mauiButton.ToPlatform(mauiContext) as FrameworkElement;
-            if (nativeButton != null)
-            {
-                var grid = new Grid
-                {
-                    Width = 160,
-                    Height = 180,
-                    HorizontalAlignment = HorizontalAlignment.Center,
-                    VerticalAlignment = VerticalAlignment.Center
-                };
-
-                var border = new Border
-                {
-                    Width = 120,
-                    Height = 120,
-                    Child = nativeButton
-                };
-                grid.Children.Add(border);
-
-                _floatingButton.Show(grid);
-            }
-
-            StartSchedule();
-        }
-
-        public static void CloseFloatingButton()
-        {
-            _floatingButton?.Close();
-            _floatingButton = null;
-            StopSchedule();
-        }
 
         // ============================
         // SCHEDULE CONTROL

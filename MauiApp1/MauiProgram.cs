@@ -1,4 +1,8 @@
-﻿using Microsoft.Extensions.Logging;
+﻿#if WINDOWS
+using Anti_Bunda_Mole.Platforms.Windows;
+using Microsoft.Maui.LifecycleEvents;
+using Microsoft.UI.Windowing;
+#endif
 
 namespace Anti_Bunda_Mole
 {
@@ -7,17 +11,31 @@ namespace Anti_Bunda_Mole
         public static MauiApp CreateMauiApp()
         {
             var builder = MauiApp.CreateBuilder();
+
             builder
                 .UseMauiApp<App>()
-                .ConfigureFonts(fonts =>
-                {
-                    fonts.AddFont("OpenSans-Regular.ttf", "OpenSansRegular");
-                    fonts.AddFont("OpenSans-Semibold.ttf", "OpenSansSemibold");
-                });
 
-#if DEBUG
-    		builder.Logging.AddDebug();
+#if WINDOWS
+                .ConfigureLifecycleEvents(events =>
+                {
+                    events.AddWindows(windows =>
+                    {
+                        windows.OnWindowCreated(window =>
+                        {
+                            TrayIconService.Init();
+
+                            var appWindow = window.AppWindow;
+
+                            appWindow.Closing += (_, args) =>
+                            {
+                                args.Cancel = true;
+                                WindowHelper.HideMainWindow();
+                            };
+                        });
+                    });
+                })
 #endif
+                ;
 
             return builder.Build();
         }
